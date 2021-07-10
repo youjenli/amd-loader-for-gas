@@ -420,7 +420,5 @@ var requirejs, require, define;
         }
     };
 
-    define.amd = {
-        jQuery: true
-    };
+    define.amd = {};
 }());
