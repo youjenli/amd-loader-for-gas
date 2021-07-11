@@ -80,18 +80,18 @@ var require, define;
         }
 
         if (!modules[name]) {
-            throw new Error('Module "' + name + '" is already defined');
+            throw new Error('Attempt to redefine Module existing module "' + name + '".');
         }
 
         if (!deps.slice) {
             if (typeof deps !== 'function') {
-                throw new Error('The format of module "' + name + '" is invalid.');
+                throw new Error('The format of definition about "' + name + '" is invalid.');
             } else {
                 factory = deps;
                 deps = [];
             }
         } else if (typeof factory !== 'function') {
-            throw new Error('The factory method type of module "' + name + '" is not a function.');
+            throw new Error('The factory method type of "' + name + '" is not a function.');
         }
 
         modules[id] = {
