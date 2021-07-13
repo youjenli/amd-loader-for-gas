@@ -33,39 +33,38 @@ var require, define;
                     return callDep(dep);
             }
         });
-
+      
         const module = definition.factory.apply(undef, depsOfModule);
         if (!isCjs) {
+            if (module === undef) {
+                throw new Error(`The definition of "${pkgName}" has an undefined return value.`);
+            }
             definition.exports = module;
         }
         definition.loaded = true;
         return definition.exports;
     }
    
-    const throwReservedModuleNameError = (name) => {
-        throw new Error(`Asking for module identified by reserved keyword "${name}".`);
-    }
-
     const req = async (reqList, callback) => {
         if (!reqList.splice) {
             if (isStr(reqList)) {
                 reqList = [reqList];
             } else {
-                throw new Error('Asking for modules with an invalid argument : ' + toStr.call(reqList));
+                throw new Error('Asking for modules with an invalid argument type : ' + toStr.call(reqList));
             }
         }
 
-        for (let req of reqList) {
+        for (let i = 0 ; i < reqList.length ; i ++) {
+            let req = reqList[i];
             if(!isStr(req)){
-                throw new Error('Asking for module with an invalid type : ' + toStr.call(req));
+                throw new Error('The argument of require call is invalid, index :' + i);
             }
 
             switch(req) {
                 case 'require':
                 case 'exports':
                 case 'module':
-                    throwReservedModuleNameError(req);
-                    break;
+                    throw new Error(`Asking for a module identified by reserved keyword "${req}".`);
             }
         }
 
@@ -78,9 +77,11 @@ var require, define;
         if (!isStr(name)) {
             throw new Error('Describing module name with an invalid type : ' + toStr.call(name));
         }
-
+        if (name.length == 0) {
+            throw new Error('Module name is empty.');
+        }
         if (!modules[name]) {
-            throw new Error('Attempt to redefine Module existing module "' + name + '".');
+            throw new Error('Attempt to redefine existing module "' + name + '".');
         }
 
         if (!deps.slice) {
@@ -90,8 +91,16 @@ var require, define;
                 factory = deps;
                 deps = [];
             }
-        } else if (typeof factory !== 'function') {
-            throw new Error('The factory method type of "' + name + '" is not a function.');
+        } else {
+            for (let i = 0 ; i < deps.length ; i ++) {
+                let dep = deps[i];
+                if (!isStr(dep) || dep.length == 0) {
+                    throw new Error('The argument of define call is invalid, index :' + i);
+                }
+            }
+            if (typeof factory !== 'function') {
+                throw new Error('The factory method type of "' + name + '" is not a function.');
+            }
         }
 
         modules[id] = {
@@ -105,8 +114,7 @@ var require, define;
 
     req.noop = doNothing;
     def.amd = {};
-    def.noop = doNothing;
-    
+   
     require = req;
     define = def;
 }())
