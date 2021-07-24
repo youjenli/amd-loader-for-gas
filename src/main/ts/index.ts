@@ -7,7 +7,7 @@ var require, define;
         return toStr.call(value) === "[object String]";
     }
 
-    const callDep = async (pkgName) => {
+    const callDep = (pkgName) => {
         const definition = modules[pkgName];
 
         if (!definition) {
@@ -45,7 +45,7 @@ var require, define;
         return definition.exports;
     }
    
-    const req = async (reqList, callback) => {
+    const req = (reqList, callback) => {
         if (!reqList.splice) {
             if (isStr(reqList)) {
                 reqList = [reqList];
@@ -103,8 +103,8 @@ var require, define;
             }
         }
 
-        modules[id] = {
-            id:id,
+        modules[name] = {
+            id:name,
             factory: factory,
             dependencies: deps,
             exports: {},

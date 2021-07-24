@@ -2,11 +2,15 @@
   "name": "amd-loader-for-gas",
   "version": "0.0.1",
   "description": "An AMD loader implemented fro Google Apps Script applications.",
-  "main": "index.js",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "youjenli1124@gmail.com",
   "license": "MIT",
+  "devDependencies": {
+    "typescript": "^4.3.5"
+  },
   "dependencies": {}
 }
