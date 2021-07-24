@@ -1,12 +1,12 @@
 {
     "compilerOptions": {
-      "lib":["ES6"],
       "target": "ES6",
-      "module":"none",
-      "moduleResolution": "Node",
+      "module":"None",
+      "moduleResolution": "node",
       "forceConsistentCasingInFileNames": true, 
       "declaration": true,
-      "outFile":"../../../dist/index.js"
+      "outFile":"../../../dist/index.js",
+      "composite": true
     },
     "files":["./index.ts"]
 }

@@ -4,12 +4,20 @@
   "description": "An AMD loader implemented fro Google Apps Script applications.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "jest": {
+    "testEnvironment": "jsdom",
+    "testMatch": [
+      "**/dist/**/*test.js"
+    ]
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "youjenli1124@gmail.com",
   "license": "MIT",
   "devDependencies": {
+    "@types/jest": "^26.0.24",
+    "jest": "^27.0.6",
     "typescript": "^4.3.5"
   },
   "dependencies": {}

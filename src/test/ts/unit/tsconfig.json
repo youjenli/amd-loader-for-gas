@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+      "target": "ES6",
+      "module":"none",
+      "moduleResolution": "node",
+      "forceConsistentCasingInFileNames": true,
+      "outFile":"../../../dist/test.js"
+    },
+    "files":["./mock.ts", "unit.test.ts"],
+    "references": [{
+      "path":"../../../main/ts/tsconfig.json",
+      "prepend":true
+    }]
+}

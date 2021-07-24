@@ -112,3 +112,45 @@ var require, define;
     require = req;
     define = def;
 }());
+const helloworld = 'helloworld';
+const nameOfSimpleModule = 'simpleModule';
+/// <reference path="./mock.ts" />
+describe('The global define function of Amd loader', () => {
+    test('should exists in global space', () => {
+        expect(define).toBeDefined();
+    });
+    test('should have type "function"', () => {
+        expect(typeof define).toBe('function');
+    });
+    const simpleModuleDef = jest.fn(() => {
+        define(nameOfSimpleModule, [], () => {
+            const module = {
+                prop1: 'helloworld'
+            };
+            return module;
+        });
+    });
+    test('should let user define module without any error', () => {
+        expect(simpleModuleDef).not.toThrowError();
+    });
+    test('should throw error while use attempt to define existing module', () => {
+        expect(simpleModuleDef).toThrowError();
+    });
+});
+/// <reference path="./mock.ts" />
+describe('The global require function of Amd loader', () => {
+    it('should exists in global space', () => {
+        expect(require).toBeDefined();
+    });
+    it('should have type "function"', () => {
+        expect(typeof require).toBe('function');
+    });
+    it('should return simple module as the argument of ready function supplied to the require call.', done => {
+        require(nameOfSimpleModule, (module) => {
+            expect(Object.prototype.toString.call(module)).toBe('[object Object]');
+            expect(module).toHaveProperty('prop1');
+            expect(module.prop1).toBe(helloworld);
+            done();
+        });
+    });
+});
