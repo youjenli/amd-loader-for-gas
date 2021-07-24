@@ -1,3 +1,4 @@
+/// <reference path="./index.d.ts" />
 var require, define;
 (function (undef) {
     const toStr = Object.prototype.toString;
@@ -38,8 +39,8 @@ var require, define;
         definition.loaded = true;
         return definition.exports;
     };
-    const req = (reqList, callback) => {
-        if (!reqList.splice) {
+    const req = (reqList, ready) => {
+        if (!Array.isArray(reqList)) {
             if (isStr(reqList)) {
                 reqList = [reqList];
             }
@@ -59,48 +60,50 @@ var require, define;
                     throw new Error(`Asking for a module identified by reserved keyword "${req}".`);
             }
         }
-        callback = callback || doNothing;
-        callback.apply(undef, reqList.map(callDep));
+        ready = ready || doNothing;
+        ready.apply(undef, reqList.map(callDep));
     };
-    const def = (name, deps, factory) => {
+    const def = (name, depsOrReadyFunction, ready) => {
         if (!isStr(name)) {
             throw new Error('Describing module name with an invalid type : ' + toStr.call(name));
         }
         if (name.length == 0) {
             throw new Error('Module name is empty.');
         }
-        if (!modules[name]) {
+        if (modules.hasOwnProperty(name)) {
             throw new Error('Attempt to redefine existing module "' + name + '".');
         }
-        if (!deps.slice) {
-            if (typeof deps !== 'function') {
+        let deps, readyFunc;
+        if (!Array.isArray(depsOrReadyFunction)) {
+            if (typeof depsOrReadyFunction !== 'function') {
                 throw new Error('The format of definition about "' + name + '" is invalid.');
             }
             else {
-                factory = deps;
                 deps = [];
+                readyFunc = depsOrReadyFunction;
             }
         }
         else {
-            for (let i = 0; i < deps.length; i++) {
-                let dep = deps[i];
+            deps = depsOrReadyFunction;
+            readyFunc = ready;
+            for (let i = 0; i < depsOrReadyFunction.length; i++) {
+                let dep = depsOrReadyFunction[i];
                 if (!isStr(dep) || dep.length == 0) {
                     throw new Error('The argument of define call is invalid, index :' + i);
                 }
             }
-            if (typeof factory !== 'function') {
+            if (typeof ready !== 'function') {
                 throw new Error('The factory method type of "' + name + '" is not a function.');
             }
         }
         modules[name] = {
             id: name,
-            factory: factory,
-            dependencies: deps,
+            factory: ready,
+            dependencies: depsOrReadyFunction,
             exports: {},
             loaded: false
         };
     };
-    req.noop = doNothing;
     def.amd = {};
     require = req;
     define = def;

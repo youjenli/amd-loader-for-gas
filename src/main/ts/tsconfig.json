@@ -4,6 +4,7 @@
       "module":"none",
       "moduleResolution": "Node",
       "forceConsistentCasingInFileNames": true, 
+      "declaration": true,
       "outFile":"../../../dist/index.js"
     },
     "files":["./index.ts"]
