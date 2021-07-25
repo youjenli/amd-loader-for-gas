@@ -4,9 +4,9 @@
       "module":"none",
       "moduleResolution": "node",
       "forceConsistentCasingInFileNames": true,
-      "outFile":"../../../dist/test.js"
+      "outFile":"../../../../dist/test.js"
     },
-    "files":["./mock.ts", "unit.test.ts"],
+    "files":["./unit.test.ts"],
     "references": [{
       "path":"../../../main/ts/tsconfig.json",
       "prepend":true

@@ -1,13 +1,6 @@
 interface Require {
 
     /**
-     * Load a module then executes a function which has the loaded module being as its argument.
-     * @param mdule The id of module to load.
-     * @param ready Called when required modules are ready.
-     **/
-    (module:string, ready?:(module:unknown) => void): void;
-
-    /**
      * Load a list of module then executes a function which has loaded modules being as its argument.
      * @param modules List of IDs about modules to load.
      * @param ready Called when required modules are ready.
@@ -52,7 +45,8 @@ interface ModuleInfo {
     factory: (...unknown) => unknown,
     dependencies: string[],
     exports: unknown,
-    loaded: boolean
+    loaded: boolean,
+    isCjsModule:boolean
 };
 
 var require:Require, define:RequireDefine;
@@ -77,38 +71,36 @@ var require:Require, define:RequireDefine;
             return definition.exports;
         }
 
-        let isCjs = false;
         const depsOfModule = definition.dependencies.map(dep => {
             switch(pkgName) {
                 case 'require':
                     return req;
                 case 'exports':
-                    isCjs = true;
                     return definition.exports;
                 case 'module':
-                    isCjs = true;
                     return definition;
                 default:
                     return callDep(dep);
             }
         });
       
-        const module = definition.factory.apply(undef, depsOfModule);
-        if (!isCjs) {
-            if (module === undef) {
-                throw new Error(`The definition of "${pkgName}" has an undefined return value.`);
+        const returnValue = definition.factory.apply(undef, depsOfModule);
+        if (!definition.isCjsModule) {
+            if (returnValue === undef) {
+                throw new Error(`The define process of module "${pkgName}" has an undefined return value.`);
             }
-            definition.exports = module;
+            definition.exports = returnValue;
         }
         definition.loaded = true;
         return definition.exports;
     }
-   
-    const req = (deps:string[]|string, ready?:(...unknown) => void) => {
+
+    const req = (deps:string[]|string, ready?:(...unknown) => void):unknown => {
         let reqList:string[];
         if (!Array.isArray(deps)) {
             if (isStr(deps)) {
-                reqList = [deps];
+                //當 deps 為字串時，將呼叫者視為在調用 commonjs 的 require 函式。
+                return callDep(deps);
             } else {
                 throw new Error('Asking for modules with an invalid argument type : ' + toStr.call(reqList));
             }
@@ -117,16 +109,16 @@ var require:Require, define:RequireDefine;
         }
 
         for (let i = 0 ; i < reqList.length ; i ++) {
-            let req = reqList[i];
-            if(!isStr(req)){
+            let module = reqList[i];
+            if(!isStr(module)){
                 throw new Error('The argument of require call is invalid, index :' + i);
             }
 
-            switch(req) {
+            switch(module) {
                 case 'require':
                 case 'exports':
                 case 'module':
-                    throw new Error(`Asking for a module identified by reserved keyword "${req}".`);
+                    throw new Error(`Asking for a module identified by reserved keyword "${module}".`);
             }
         }
 
@@ -146,7 +138,7 @@ var require:Require, define:RequireDefine;
             throw new Error('Attempt to redefine existing module "' + name + '".');
         }
 
-        let deps:string[], readyFunc:() => void;
+        let deps:string[], readyFunc:() => void, isCjsModule:boolean = false, hasDepsOtherThanCjsModuleGlobals:boolean = false;
         if (!Array.isArray(depsOrReadyFunction)) {
             if (typeof depsOrReadyFunction !== 'function') {
                 throw new Error('The format of definition about "' + name + '" is invalid.');
@@ -155,17 +147,32 @@ var require:Require, define:RequireDefine;
                 readyFunc = depsOrReadyFunction;
             }
         } else {
-            deps = depsOrReadyFunction;
-            readyFunc = ready;
             for (let i = 0 ; i < depsOrReadyFunction.length ; i ++) {
                 let dep = depsOrReadyFunction[i];
                 if (!isStr(dep) || dep.length == 0) {
                     throw new Error('The argument of define call is invalid, index :' + i);
                 }
+
+                switch(dep) {
+                    case 'require':
+                    case 'exports':
+                    case 'module':
+                        isCjsModule = true;
+                        break;
+                    default:
+                        hasDepsOtherThanCjsModuleGlobals = true;
+                        break;
+                }
             }
+            if (isCjsModule && hasDepsOtherThanCjsModuleGlobals) {
+                throw new Error(`The module "${name}", which  was determined as a commonjs module because it depends on "require", "exports" or "module" object, has asked for other module in define call.`);
+            }
+            deps = depsOrReadyFunction;
+
             if (typeof ready !== 'function') {
                 throw new Error('The factory method type of "' + name + '" is not a function.');
             }
+            readyFunc = ready;
         }
 
         modules[name] = {
@@ -173,7 +180,8 @@ var require:Require, define:RequireDefine;
             factory: readyFunc,
             dependencies: deps,
             exports: {},
-            loaded: false
+            loaded: false,
+            isCjsModule: isCjsModule
         };
     };
 
