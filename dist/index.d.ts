@@ -1,16 +1,10 @@
 interface Require {
     /**
-     * Load a module then executes a function which has the loaded module being as its argument.
-     * @param mdule The id of module to load.
-     * @param ready Called when required modules are ready.
-     **/
-    (module: string, ready?: (module: any) => void): void;
-    /**
      * Load a list of module then executes a function which has loaded modules being as its argument.
      * @param modules List of IDs about modules to load.
      * @param ready Called when required modules are ready.
      **/
-    (modules: string[], ready?: (...any: any[]) => void): void;
+    (modules: string[], ready?: (...unknown: any[]) => void): void;
 }
 interface RequireDefine {
     /**
@@ -20,7 +14,7 @@ interface RequireDefine {
     *    callback deps module dependencies
     *    callback return module definition
     **/
-    (name: string, ready: () => void): void;
+    (name: string, ready: () => unknown): void;
     /**
     * Define a module with a name and dependencies.
     * @param name The name of the module.
@@ -29,7 +23,7 @@ interface RequireDefine {
     *    callback deps module dependencies
     *    callback return module definition
     **/
-    (name: string, deps: string[], ready: (...any: any[]) => void): void;
+    (name: string, deps: string[], ready: (...unknown: any[]) => unknown): void;
     /**
     * Used to allow a clear indicator that a global define function (as needed for script src browser loading) conforms
     * to the AMD API, any global define function SHOULD have a property called "amd" whose value is an object.
@@ -40,11 +34,10 @@ interface RequireDefine {
 }
 interface ModuleInfo {
     id: string;
-    factory: () => void;
+    factory: (...unknown: any[]) => unknown;
     dependencies: string[];
-    exports: {
-        [key: string]: any;
-    };
+    exports: unknown;
     loaded: boolean;
+    isCjsModule: boolean;
 }
 declare var require: Require, define: RequireDefine;
