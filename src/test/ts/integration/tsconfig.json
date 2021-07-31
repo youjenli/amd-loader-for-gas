@@ -1,12 +1,12 @@
 {
     "compilerOptions": {
       "target": "ES6",
-      "module":"none",
+      "module":"amd",
       "moduleResolution": "node",
       "forceConsistentCasingInFileNames": true,
-      "outFile":"../../../../dist/unit-test.js"
+      "outFile":"../../../../dist/integration-test.js"
     },
-    "files":["./unit.test.ts"],
+    "files":["./entry.ts"],
     "references": [{
       "path":"../../../main/ts/tsconfig.json",
       "prepend":true

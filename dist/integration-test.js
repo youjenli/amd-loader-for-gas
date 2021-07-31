@@ -1,85 +1,20 @@
-interface Require {
-
-    /**
-     * Load a module which is identified by the module name.
-     * @param moduleName The name of module which was registered in previous define method call.
-     * @returns The module
-     */
-    (moduleName:string):unknown;
-
-    /**
-     * Load a list of module then executes a function which has loaded modules being as its argument.
-     * @param moduleNames List of IDs about modules to load.
-     * @param ready Called when required modules are ready.
-     **/
-    (moduleNames:string[], ready?:(...unknown) => void): void;
-
-}
-
-interface RequireDefine {
-
-    /**
-    * Define a module with a name and dependencies.
-    * @param name The name of the module.
-    * @param ready Callback function when the dependencies are loaded.
-    *    callback deps module dependencies
-    *    callback return module definition
-    **/
-    (name: string, ready: () => unknown): void;
-
-    /**
-    * Define a module with a name and dependencies.
-    * @param name The name of the module.
-    * @param deps List of dependencies module IDs.
-    * @param ready Callback function when the dependencies are loaded.
-    *    callback deps module dependencies
-    *    callback return module definition
-    **/
-    (name: string, deps: string[], ready: (...unknown) => unknown): void;
-
-    /**
-    * Used to allow a clear indicator that a global define function (as needed for script src browser loading) conforms
-    * to the AMD API, any global define function SHOULD have a property called "amd" whose value is an object.
-    * This helps avoid conflict with any other existing JavaScript code that could have defined a define() function
-    * that does not conform to the AMD API.
-    */
-     amd: Object;
-
-}
-
-var require:Require, define:RequireDefine;
+var require, define;
 (function (undef) {
     const toStr = Object.prototype.toString;
-    type ModuleInfo = {
-        id:string,
-        factory: (...unknown) => unknown,
-        dependencies: string[],
-        exports: unknown,
-        loaded: boolean,
-        pureAmdModule:boolean
-    };
-    const modules:{
-        [key:string]:ModuleInfo
-    } = {}, doNothing = () => {};
-
+    const modules = {}, doNothing = () => { };
     function isStr(value) {
         return toStr.call(value) === "[object String]";
     }
-
-    const callDep = (pkgName:string):unknown => {
-        
+    const callDep = (pkgName) => {
         if (!pkgName) {
             throw new Error(`Asking for module "${pkgName}" which was not defined.`);
         }
-
         const moduleDef = modules[pkgName];
-
         if (moduleDef.loaded === true) {
             return moduleDef.exports;
         }
-
         const depsOfModule = moduleDef.dependencies.map(dep => {
-            switch(dep) {
+            switch (dep) {
                 case 'require':
                     return req;
                 case 'exports':
@@ -90,7 +25,6 @@ var require:Require, define:RequireDefine;
                     return callDep(dep);
             }
         });
-      
         const returnValue = moduleDef.factory.apply(undef, depsOfModule);
         if (moduleDef.pureAmdModule) {
             if (returnValue === undef) {
@@ -100,27 +34,26 @@ var require:Require, define:RequireDefine;
         }
         moduleDef.loaded = true;
         return moduleDef.exports;
-    }
-
-    const req = (pkgNames:string[]|string, ready?:(...unknown) => void):unknown => {
-        let deps:string[];
+    };
+    const req = (pkgNames, ready) => {
+        let deps;
         if (!Array.isArray(pkgNames)) {
             if (isStr(pkgNames)) {
                 //當 deps 為字串時，將呼叫者視為在調用 commonjs 的 require 函式。
                 return callDep(pkgNames);
-            } else {
+            }
+            else {
                 throw new Error('Asking for modules with an invalid argument type : ' + toStr.call(deps));
             }
-        } else {
+        }
+        else {
             deps = pkgNames;
         }
-
         const modules = deps.map((dep, idx) => {
-            if(!isStr(dep)){
+            if (!isStr(dep)) {
                 throw new Error('The argument of require call is invalid, index :' + idx);
             }
-
-            switch(dep) {
+            switch (dep) {
                 case 'require':
                 case 'exports':
                 case 'module':
@@ -129,13 +62,10 @@ var require:Require, define:RequireDefine;
                     return callDep(dep);
             }
         });
-
         ready = ready || doNothing;
-        
         ready.apply(undef, modules);
     };
-
-    const def = (name:string, depsOrReadyFunction:string[]|(() => void), ready?:() => void) => {
+    const def = (name, depsOrReadyFunction, ready) => {
         if (!isStr(name)) {
             throw new Error('Describing module name with an invalid type : ' + toStr.call(name));
         }
@@ -145,29 +75,28 @@ var require:Require, define:RequireDefine;
         if (modules.hasOwnProperty(name)) {
             throw new Error('Attempt to redefine existing module "' + name + '".');
         }
-
         ['require', 'exports', 'module'].forEach(preservedKeyword => {
             if (name == preservedKeyword) {
-                throw new Error(`Defining module whose name is a reserved keyword : ${name}.`)
+                throw new Error(`Defining module whose name is a reserved keyword : ${name}.`);
             }
         });
-
-        let deps:string[], readyFunc:() => void, pureAmdModule:boolean = true;
+        let deps, readyFunc, pureAmdModule = true;
         if (!Array.isArray(depsOrReadyFunction)) {
             if (typeof depsOrReadyFunction !== 'function') {
                 throw new Error('The format of definition about "' + name + '" is invalid.');
-            } else {
+            }
+            else {
                 deps = [];
                 readyFunc = depsOrReadyFunction;
             }
-        } else {
-            for (let i = 0 ; i < depsOrReadyFunction.length ; i ++) {
+        }
+        else {
+            for (let i = 0; i < depsOrReadyFunction.length; i++) {
                 let dep = depsOrReadyFunction[i];
                 if (!isStr(dep) || dep.length == 0) {
                     throw new Error('The argument of define call is invalid, index :' + i);
                 }
-
-                switch(dep) {
+                switch (dep) {
                     case 'require':
                     case 'exports':
                     case 'module':
@@ -175,15 +104,13 @@ var require:Require, define:RequireDefine;
                 }
             }
             deps = depsOrReadyFunction;
-
             if (typeof ready !== 'function') {
                 throw new Error('The factory method type of "' + name + '" is not a function.');
             }
             readyFunc = ready;
         }
-
         modules[name] = {
-            id:name,
+            id: name,
             factory: readyFunc,
             dependencies: deps,
             exports: {},
@@ -191,9 +118,42 @@ var require:Require, define:RequireDefine;
             pureAmdModule: pureAmdModule
         };
     };
-
     def.amd = {};
-   
     require = req;
     define = def;
-}())
+}());
+define("myModule", ["require", "exports"], function (require, exports) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    exports.obj = exports.isModule = exports.echo = void 0;
+    function echo(msg) {
+        console.log(msg);
+        return msg;
+    }
+    exports.echo = echo;
+    exports.isModule = true;
+    exports.obj = {
+        key: 'value'
+    };
+});
+define("integration.test", ["require", "exports", "myModule"], function (require, exports, myModule_1) {
+    "use strict";
+    Object.defineProperty(exports, "__esModule", { value: true });
+    describe('A module loaded with amd loader', () => {
+        it('can import echo function offered by external module.', () => {
+            const msg = 'Start executing scripts in entry.';
+            const value = myModule_1.echo(msg);
+            expect(value).toBe(msg);
+        });
+        it('can import boolean value offered by external module.', () => {
+            const bool = myModule_1.isModule;
+            expect(bool).toBe(true);
+        });
+        it('can import object from external module', () => {
+            const module = myModule_1.obj;
+            expect(module.hasOwnProperty('key')).toBe(true);
+        });
+    });
+});
+/// <reference path="./integration.test.ts" />
+require('integration.test');

@@ -1,10 +1,16 @@
 interface Require {
     /**
+     * Load a module which is identified by the module name.
+     * @param moduleName The name of module which was registered in previous define method call.
+     * @returns The module
+     */
+    (moduleName: string): unknown;
+    /**
      * Load a list of module then executes a function which has loaded modules being as its argument.
-     * @param modules List of IDs about modules to load.
+     * @param moduleNames List of IDs about modules to load.
      * @param ready Called when required modules are ready.
      **/
-    (modules: string[], ready?: (...unknown: any[]) => void): void;
+    (moduleNames: string[], ready?: (...unknown: any[]) => void): void;
 }
 interface RequireDefine {
     /**
@@ -31,13 +37,5 @@ interface RequireDefine {
     * that does not conform to the AMD API.
     */
     amd: Object;
-}
-interface ModuleInfo {
-    id: string;
-    factory: (...unknown: any[]) => unknown;
-    dependencies: string[];
-    exports: unknown;
-    loaded: boolean;
-    isCjsModule: boolean;
 }
 declare var require: Require, define: RequireDefine;

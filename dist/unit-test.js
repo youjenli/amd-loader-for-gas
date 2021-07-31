@@ -1,4 +1,3 @@
-;
 var require, define;
 (function (undef) {
     const toStr = Object.prototype.toString;
@@ -7,63 +6,64 @@ var require, define;
         return toStr.call(value) === "[object String]";
     }
     const callDep = (pkgName) => {
-        const definition = modules[pkgName];
-        if (!definition) {
+        if (!pkgName) {
             throw new Error(`Asking for module "${pkgName}" which was not defined.`);
         }
-        if (definition.loaded === true) {
-            return definition.exports;
+        const moduleDef = modules[pkgName];
+        if (moduleDef.loaded === true) {
+            return moduleDef.exports;
         }
-        const depsOfModule = definition.dependencies.map(dep => {
-            switch (pkgName) {
+        const depsOfModule = moduleDef.dependencies.map(dep => {
+            switch (dep) {
                 case 'require':
                     return req;
                 case 'exports':
-                    return definition.exports;
+                    return moduleDef.exports;
                 case 'module':
-                    return definition;
+                    return moduleDef;
                 default:
                     return callDep(dep);
             }
         });
-        const returnValue = definition.factory.apply(undef, depsOfModule);
-        if (!definition.isCjsModule) {
+        const returnValue = moduleDef.factory.apply(undef, depsOfModule);
+        if (moduleDef.pureAmdModule) {
             if (returnValue === undef) {
                 throw new Error(`The define process of module "${pkgName}" has an undefined return value.`);
             }
-            definition.exports = returnValue;
+            moduleDef.exports = returnValue;
         }
-        definition.loaded = true;
-        return definition.exports;
+        moduleDef.loaded = true;
+        return moduleDef.exports;
     };
-    const req = (deps, ready) => {
-        let reqList;
-        if (!Array.isArray(deps)) {
-            if (isStr(deps)) {
+    const req = (pkgNames, ready) => {
+        let deps;
+        if (!Array.isArray(pkgNames)) {
+            if (isStr(pkgNames)) {
                 //當 deps 為字串時，將呼叫者視為在調用 commonjs 的 require 函式。
-                return callDep(deps);
+                return callDep(pkgNames);
             }
             else {
-                throw new Error('Asking for modules with an invalid argument type : ' + toStr.call(reqList));
+                throw new Error('Asking for modules with an invalid argument type : ' + toStr.call(deps));
             }
         }
         else {
-            reqList = deps;
+            deps = pkgNames;
         }
-        for (let i = 0; i < reqList.length; i++) {
-            let module = reqList[i];
-            if (!isStr(module)) {
-                throw new Error('The argument of require call is invalid, index :' + i);
+        const modules = deps.map((dep, idx) => {
+            if (!isStr(dep)) {
+                throw new Error('The argument of require call is invalid, index :' + idx);
             }
-            switch (module) {
+            switch (dep) {
                 case 'require':
                 case 'exports':
                 case 'module':
-                    throw new Error(`Asking for a module identified by reserved keyword "${module}".`);
+                    throw new Error(`Asking for a module which is identified by reserved keyword "${module}".`);
+                default:
+                    return callDep(dep);
             }
-        }
+        });
         ready = ready || doNothing;
-        ready.apply(undef, reqList.map(callDep));
+        ready.apply(undef, modules);
     };
     const def = (name, depsOrReadyFunction, ready) => {
         if (!isStr(name)) {
@@ -75,7 +75,12 @@ var require, define;
         if (modules.hasOwnProperty(name)) {
             throw new Error('Attempt to redefine existing module "' + name + '".');
         }
-        let deps, readyFunc, isCjsModule = false, hasDepsOtherThanCjsModuleGlobals = false;
+        ['require', 'exports', 'module'].forEach(preservedKeyword => {
+            if (name == preservedKeyword) {
+                throw new Error(`Defining module whose name is a reserved keyword : ${name}.`);
+            }
+        });
+        let deps, readyFunc, pureAmdModule = true;
         if (!Array.isArray(depsOrReadyFunction)) {
             if (typeof depsOrReadyFunction !== 'function') {
                 throw new Error('The format of definition about "' + name + '" is invalid.');
@@ -95,15 +100,8 @@ var require, define;
                     case 'require':
                     case 'exports':
                     case 'module':
-                        isCjsModule = true;
-                        break;
-                    default:
-                        hasDepsOtherThanCjsModuleGlobals = true;
-                        break;
+                        pureAmdModule = false;
                 }
-            }
-            if (isCjsModule && hasDepsOtherThanCjsModuleGlobals) {
-                throw new Error(`The module "${name}", which  was determined as a commonjs module because it depends on "require", "exports" or "module" object, has asked for other module in define call.`);
             }
             deps = depsOrReadyFunction;
             if (typeof ready !== 'function') {
@@ -117,7 +115,7 @@ var require, define;
             dependencies: deps,
             exports: {},
             loaded: false,
-            isCjsModule: isCjsModule
+            pureAmdModule: pureAmdModule
         };
     };
     def.amd = {};
@@ -138,7 +136,7 @@ describe('The Amd loader', () => {
         expect(require).toBeDefined();
         expect(typeof require).toBe('function');
     });
-    it('should throw error immediately if the user does not offer a name for the module he wants to define.', () => {
+    it('should throw an error immediately when the user does not offer a name for the module he wants to define.', () => {
         const moduleDefWithoutModuleName = jest.fn(() => {
             //@ts-ignore
             define(() => {
@@ -147,7 +145,7 @@ describe('The Amd loader', () => {
         });
         expect(moduleDefWithoutModuleName).toThrowError();
     });
-    it('should throw error immediately if the user provides an empty string as module name in module definition.', () => {
+    it('should throw an error immediately when the user provides an empty string as module name in module definition.', () => {
         const moduleDefWhichHasEmptyStringAsModuleName = jest.fn(() => {
             define('', [], () => {
                 return simpleMockModule;
@@ -155,7 +153,27 @@ describe('The Amd loader', () => {
         });
         expect(moduleDefWhichHasEmptyStringAsModuleName).toThrowError();
     });
-    it('should throw error if the type of module name in definition is invalid.', () => {
+    it('should throw an error immediately when the user wants to define a module whose name is one of a reserved keywords.', () => {
+        const defineAModuleNamedRequire = jest.fn(() => {
+            define('require', [], () => {
+                return false;
+            });
+        });
+        expect(defineAModuleNamedRequire).toThrowError();
+        const defineAModuleNamedExports = jest.fn(() => {
+            define('exports', [], () => {
+                return false;
+            });
+        });
+        expect(defineAModuleNamedExports).toThrowError();
+        const defineAModuleNamedModule = jest.fn(() => {
+            define('module', [], () => {
+                return false;
+            });
+        });
+        expect(defineAModuleNamedModule).toThrowError();
+    });
+    it('should throw an error when the type of module name in definition is invalid.', () => {
         const defineModuleWithInvalidName = jest.fn(() => {
             //@ts-ignore
             define({ name: 'helloworld' }, [], () => {
@@ -164,7 +182,7 @@ describe('The Amd loader', () => {
         });
         expect(defineModuleWithInvalidName).toThrowError();
     });
-    it('should throw error if the type of any dependency is invalid.', () => {
+    it('should throw an error when the type of any dependency is invalid.', () => {
         const defineModuleWithDependenyWhichHasInvalidType = jest.fn(() => {
             //@ts-ignore
             define('moduleWhoseDependenciesHasInvalidType', false, () => {
@@ -177,21 +195,21 @@ describe('The Amd loader', () => {
         });
         expect(defineModuleWithDependenyWhichHasInvalidType).toThrowError();
     });
-    it('should throw error immediately if the user does not provide a function to define module.', () => {
+    it('should throw an error immediately when the user does not provide a function to define module.', () => {
         const moduleDefWhichHasEmptyStringAsModuleName = jest.fn(() => {
             //@ts-ignore
             define('', []);
         });
         expect(moduleDefWhichHasEmptyStringAsModuleName).toThrowError();
     });
-    it('should throw error immediately if the type of last argument of define function is not "function". ', () => {
+    it('should throw an error immediately when the type of last argument of define function is not "function". ', () => {
         const moduleDefWhoseLastArgumentIsNotFunction = jest.fn(() => {
             //@ts-ignore
             define('moduleDefWhoseLastArgumentIsNotFunction', [], true);
         });
         expect(moduleDefWhoseLastArgumentIsNotFunction).toThrowError();
     });
-    it('should throw error immediately when the user wants to get module "require", "exports" or "module" in require call.', () => {
+    it('should throw an error immediately when the user wants to get module "require", "exports" or "module" in require call.', () => {
         const requireRequireModule = jest.fn(() => {
             require(['require'], () => {
                 //do nothing
@@ -228,6 +246,22 @@ describe('The user of amd loader', () => {
             });
         });
         expect(requireSimpleModule).not.toThrowError();
+    });
+    test('should get the require function with commonjs style module definition', done => {
+        const basicModuleName = 'basicModule';
+        const basicModule = {
+            name: 'helloworld'
+        };
+        define(basicModuleName, ['require', 'exports'], (req, exports) => {
+            expect(typeof req).toBe('function');
+            const simpleModule = req(nameOfSimpleModule);
+            expect(simpleModule).toMatchObject(simpleMockModule);
+            exports.basic = basicModule;
+        });
+        require([basicModuleName], (module) => {
+            expect(module.basic).toMatchObject(basicModule);
+            done();
+        });
     });
     test('will get the same instance of module with the same module name', () => {
         const requireSimpleModule = jest.fn(() => {
@@ -294,7 +328,7 @@ describe('The user of amd loader', () => {
                 expect(obj).toMatchObject(moduleThatWasDefinedWithCjsObj);
             });
         });
-        expect(requireModuleWhichWasDefinedWithCjsObj).toThrowError();
+        expect(requireModuleWhichWasDefinedWithCjsObj).not.toThrowError();
     });
     test('will get an error immediately when he attempts to define a module whose name was used before.', () => {
         const defineModuleWhoseNameWasUsedBefore = jest.fn(() => {
@@ -345,17 +379,5 @@ describe('The user of amd loader', () => {
             require(['module']);
         });
         expect(getModuleObjInRequire).toThrowError();
-    });
-    test('will get an error immediately when he attempts to define a module with commonjs objects but ask for anything else to involve in the definition process.', () => {
-        const nameOfModuleToBeDefinedWithCjsObj = 'nameOfModuleToBeDefinedWithCjsObj';
-        const defineModuleWithCjsObj = jest.fn(() => {
-            define(nameOfModuleToBeDefinedWithCjsObj, ['require', 'exports', 'module', 'simpleModule'], (req, exports, module, simpleModule) => {
-                module.exports = {
-                    name: 'moduleDefinedWithCjsObjsButAsForAnotherModuleToInvolveInTheDefinitionProcess',
-                    simpleModule: simpleModule
-                };
-            });
-        });
-        expect(defineModuleWithCjsObj).toThrowError();
     });
 });
