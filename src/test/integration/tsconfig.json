@@ -1,0 +1,20 @@
+{
+    "compilerOptions": {
+      "target": "ES6",
+      "module":"amd",
+      "moduleResolution": "node",
+      "typeRoots": ["../../../node_modules/@types"],
+      /* 雖然 typescript 有 composite project 的概念，但型態定義檔的來源設定仍未自動考慮 npm 執行指令的工作目錄，
+         因此這邊要指定型態定義檔的位置，否則 vscode 會回報找不到 jest 的型態 */
+      "types":["jest"],
+      /*此處要藉由設定載入的型態定義檔為空值以便取消 tsc 預設載入的型態 node, jest, express，
+        否則自動編譯作業會因為 amd require 與 node 的 require 函式庫名稱衝突而失敗*/
+      "forceConsistentCasingInFileNames": true,
+      "outFile":"../../../__tests__/integration.test.js"
+    },
+    "files":["./entry.ts"],
+    "references": [{
+      "path":"../../main/tsconfig.json",
+      "prepend":true
+    }]
+}

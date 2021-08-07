@@ -124,7 +124,7 @@ var require:Require, define:RequireDefine;
                 case 'require':
                 case 'exports':
                 case 'module':
-                    throw new Error(`Asking for a module which is identified by reserved keyword "${module}".`);
+                    throw new Error(`Asking for a module which is identified by reserved keyword "${dep}".`);
                 default:
                     return callDep(dep);
             }

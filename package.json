@@ -6,12 +6,11 @@
   "types": "./dist/index.d.ts",
   "jest": {
     "testEnvironment": "jsdom",
-    "testMatch": [
-      "**/dist/**/*test.js"
-    ]
+    "testMatch":["**/__tests__/**/*test.js"]
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "compile": "tsc -p ./src/main/tsconfig.json && tsc -p ./src/test/unit/tsconfig.json && tsc -p ./src/test/integration/tsconfig.json",
+    "test": "jest"
   },
   "author": "youjenli1124@gmail.com",
   "license": "MIT",

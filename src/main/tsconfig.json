@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+      "target": "ES6",
+      "module":"None",
+      "moduleResolution": "node",
+      "types":[],
+      /*此處要藉由設定載入的型態定義檔為空值以便取消 tsc 預設載入的型態 node, jest, express，
+        否則自動編譯作業會因為 amd require 與 node 的 require 函式庫名稱衝突而失敗*/
+      "forceConsistentCasingInFileNames": true, 
+      "declaration": true,
+      "outFile":"../../dist/index.js",
+      "composite": true
+    },
+    "files":["./index.ts"]
+}
