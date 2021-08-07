@@ -1,6 +1,6 @@
 {
   "name": "amd-loader-for-gas",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "An AMD loader implemented for Google Apps Script applications.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
